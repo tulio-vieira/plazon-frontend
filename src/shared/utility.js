@@ -1,16 +1,9 @@
-export const BASE_URL = 'http://127.0.0.1:3100';
+export const DEFAULT_BANNER = '/images/default-banner.png';
 
-export const DEFAULT_BANNER = BASE_URL + '/images/default-banner.jpg';
-
-export const DEFAULT_PROFILE_PIC = BASE_URL + '/images/default-profile-picture.jpg';
-
-// this attaches the base url to the picture if it is stored in the server
-export const setPic = (picUrl) => {
-    return picUrl[0] === '/' ? (BASE_URL + picUrl) : picUrl;
-}
+export const DEFAULT_PROFILE_PIC = '/images/default-profile-picture.jpg';
 
 export const convertDate = (dateString) => {
-    return new Date(dateString).toDateString().replace(/^\S+\s/,'').replace(/ (?=\d{4})/, ', ');
+    return new Date(dateString.trim()).toDateString().replace(/^\S+\s/,'').replace(/ (?=\d{4})/, ', ');
 }
 
 // UPDATE OBJECT NO UNDEFINED
@@ -39,3 +32,18 @@ export const checkValidity = ( value, type ) => {
             return null;
     }
 }
+
+export const VIDEO_VALIDATORS = [
+    // youtube validator
+    {
+      // eslint-disable-next-line
+      regex: /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+      embedUrl: 'https://www.youtube.com/embed/'
+    },
+    // vimeo validator
+    {
+      // eslint-disable-next-line
+      regex: /^(?:https?:\/\/)?(?:www\.|player\.)?vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:[a-zA-Z0-9_\-]+)?/i,
+      embedUrl: 'https://player.vimeo.com/video/'
+    }
+  ];

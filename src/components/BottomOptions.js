@@ -8,23 +8,24 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: theme.spacing(1),
+    marginTop: theme.spacing(0.5),
   },
   message: {
     display: 'inline-block',
     marginRight: theme.spacing(1),
   },
   replyButton: {
-    marginLeft: theme.spacing(1),
+    margin: theme.spacing(0.5)
+  },
+  buttons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',  
   },
   [theme.breakpoints.down('xs')]: {
     message: {
-      fontSize: '0.8em'
-    },
-    replyButton: {
-      marginBottom: theme.spacing(1),
-      float: 'right'
-    },
+      fontSize: '0.9em'
+    }
   },
 }));
 
@@ -34,7 +35,7 @@ export default function BottomOptions(props) {
   return (
     <div className={classes.bottomOptions}>
       <Typography className={classes.message + ' ' + props.messageClass} variant='body1' >{props.message}</Typography>
-      <div>
+      <div className={classes.buttons}>
         {props.handleCanceled ?
           <Button
             disabled={props.mainButtonDisabled}

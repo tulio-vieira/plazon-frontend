@@ -1,19 +1,19 @@
-import React, { Component } from 'react';
+import React, { Component, lazy, Suspense } from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
-import { createMuiTheme, CssBaseline, ThemeProvider } from '@material-ui/core';
+import { createMuiTheme, CssBaseline, LinearProgress, ThemeProvider } from '@material-ui/core';
 import purple from '@material-ui/core/colors/purple';
 import green from '@material-ui/core/colors/green';
 import Layout from './hoc/Layout';
 import Feed from './containers/Feed';
 import PostDetail from './containers/PostDetail';
 import Profile from './containers/Profile/Profile';
-import AccountSettings from './containers/AccountSettings';
-import UserList from './components/UserList/UserList';
 import Auth from './containers/Auth/Auth';
 import Logout from './containers/Auth/Logout';
 import { connect } from 'react-redux';
 import * as actions from './store/actions/index'
-
+import Search from './containers/Search';
+import Discover from './containers/Discover';
+const AccountSettings = lazy(() => import('./containers/AccountSettings'));
 
 class App extends Component {
   constructor(props){
@@ -75,17 +75,20 @@ class App extends Component {
       <ThemeProvider theme={this.state.dark ? darkTheme : lightTheme}>
         <CssBaseline />
         <Layout switchedDarkMode={this.switchDarkMode}>
-          <Switch>
-            <Route path='/post/:id' component={PostDetail} />
-            {this.props.isAuthenticated && <Route path='/settings' component={AccountSettings} />}
-            {!this.props.isAuthenticated && <Route path='/login' render={(props) => <Auth register={false} {...props} />} />}
-            {!this.props.isAuthenticated && <Route path='/register' render={(props) => <Auth register={true} {...props} />} />}
-            {this.props.isAuthenticated && <Route path='/logout' component={Logout} />}
-            <Route path='/userlist' component={UserList} />
-            <Route path='/feed' component={Feed} />
-            <Route path='/profile/:id' component={Profile} />
-            <Redirect to="/feed" />
-          </Switch>
+          <Suspense fallback={<LinearProgress style={{marginTop: 24}}/>}>
+            <Switch>
+              <Route path='/post/:postId/:commentId?' component={PostDetail} />
+              {this.props.isAuthenticated && <Route path='/settings' component={AccountSettings} />}
+              <Route path='/login' render={(props) => <Auth register={false} {...props} />} />
+              <Route path='/register' render={(props) => <Auth register={true} {...props} />} />
+              {this.props.isAuthenticated && <Route path='/logout' component={Logout} />}
+              <Route path='/search' component={Search} />
+              <Route path='/discover' component={Discover} />
+              <Route path='/feed' component={Feed} />
+              <Route path='/profile/:id' component={Profile} />
+              <Redirect to='/feed' />
+            </Switch>
+          </Suspense>
         </Layout>
       </ThemeProvider>
     );

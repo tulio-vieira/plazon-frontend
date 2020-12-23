@@ -1,74 +1,130 @@
 import React, { Component } from 'react';
 import Comment from './Comment';
+import StatefulCreateComment from './StatefulCreateComment';
+import { withStyles } from '@material-ui/core';
+import LinkThread from './LinkThread';
 import axios from '../../axios-instance';
-import { withStyles } from '@material-ui/styles';
-import { LinearProgress } from '@material-ui/core';
-import { connect } from 'react-redux';
 
 const styles = (theme) => ({
-  loading: {
+  commentWrapper: {
+    padding: theme.spacing(3),
+    backgroundColor: theme.palette.background.mid,
+    [theme.breakpoints.down(400)]: {
+      padding: theme.spacing(1.5)
+    }
+  },
+  spacer: {
     marginBottom: theme.spacing(2)
   }
 });
 
 class Comments extends Component {
-  constructor(props){
+  constructor(props) {
     super(props);
-    this.commentsData= {};
+    this.initializeData(props.comments);
+    if (props.comments) this.updateCommentTree(props.comments);
+    this.state = { renderSwitch: false };
+  }
+
+  initializeData(comments) {
+    // holds data about local state of comments (is it showing its children? etc...)
+    this.commentsData = {};
+    // holds the structure of the comment tree in the following way:
+    // comment_tree = { <comment_id>: { children: [ <comment>, <comment> ] children_count: 2 }, <other_comment_id>: {...}, ... } 
+    // children_count is necessary because the user can add comments and children_count will not change,
+    // and then we can fetch for more comments in the database using the right index based on children_count
     this.comment_tree = {};
-    this.state = {loading: true};
-    this.postId = '5f7f66994451551380105567';
+    // holds the keys of the comments added. That way, when the servers retrieves the comments that were just added, 
+    // they will not be added again to the comment tree
+    this.comment_ids_added = {};
+    this.startingDepth = comments[0] ? comments[0].depth : 0;
+    this.root = comments[0] ? comments[0].parent_id : this.props.postId;
   }
 
-  componentDidMount() {
-    this.makeRequest(this.postId)
-    .then(res => {
-      if (!res) return;
-      this.updateCommentTree(res.data);
-      this.setState({loading: false});
-    })
+  shouldComponentUpdate(nextProps) {
+    // has to do with continue thread
+    if (nextProps.rootId !== this.props.rootId) {
+      this.initializeData(nextProps.comments);
+      this.updateCommentTree(nextProps.comments);
+      return true;
+    }
+    // has to do with loadmore
+    if (nextProps.comments !== this.props.comments) {
+      this.updateCommentTree(nextProps.comments);
+      return true;
+    }
+    return true;
   }
-
-  handleLoadMore = (commentId, startIndex, depth) => {
-    this.makeRequest(commentId, startIndex, 3)
-    .then(res => {
-      if (!res) return;
-      this.updateCommentTree(res.data, depth + 1);
-      this.setState({loading: false});
-    })
-  }
-  
+ 
   updateCommentTree = (comments_arr) => {
     let comment_tree = this.comment_tree;
-    for (let layer of comments_arr){
-      for (let comment of layer) {
-        comment_tree[comment.parent_id] ?
-        comment_tree[comment.parent_id].push(comment) :
-        comment_tree[comment.parent_id] = [comment];
+    for (let comment of comments_arr) {
+      if (this.comment_ids_added[comment._id]) continue;
+      if (comment_tree[comment.parent_id]) {
+        comment_tree[comment.parent_id].children.push(comment);
+        comment_tree[comment.parent_id].children_count++;
+      } else {
+        comment_tree[comment.parent_id] = { children: [comment], children_count: 1 };
       }
     }
   }
-  
-  makeRequest = (commentId, startIndex, limit) => {
-    return axios ({
-      method: 'GET',
-      url: 'comments/' + commentId,
-      params: { startIndex, limit },
+
+  postNewComment = (depth, parent_id, body) => {
+    axios ({
+      method: 'POST',
+      url: '/comments',
+      headers: { 'Authorization': 'Bearer ' + this.props.token },
+      data: {
+        post_id: this.props.postId,
+        parent_id,
+        body,
+        depth,
+      }
+    }).then(res => {
+      this.comment_ids_added[res.data._id] = true;
+      this.comment_tree[parent_id] ?
+      this.comment_tree[parent_id].children.unshift(res.data) :
+      this.comment_tree[parent_id] = { children: [res.data] };
+      this.setState(prevState => ({renderSwitch: !prevState.renderSwitch}));
+    }).catch(err => {
+      this.comment_tree[parent_id] ?
+      this.comment_tree[parent_id].children = [...this.comment_tree[parent_id].children] :
+      this.comment_tree[parent_id] = { children: [] };
+      this.setState(prevState => ({renderSwitch: !prevState.renderSwitch}));
+      console.log(err);
     })
   }
-
+  
   mapComments = (comments) => {
     return comments.map(comment => {
-      let children_count = this.comment_tree[comment._id] ? this.comment_tree[comment._id].length : 0;
+      
+      let children_count = 0;
+      try { children_count = this.comment_tree[comment._id].children_count || 0 } catch {};
+
+      let children = this.comment_tree[comment._id]
+        ? this.mapComments(this.comment_tree[comment._id].children) : null;
+
+      let endOfThread = (comment.depth !== this.startingDepth) && ((comment.depth - this.startingDepth) % this.props.maxDepth) === 0;
+      let loadMore = (children_count < comment.num_children);
+      const startDepth = loadMore && !endOfThread ? (comment.depth + 1 - this.startingDepth) % this.props.maxDepth : null;
+
       return <Comment
         key={comment._id}
-        id={comment._id}
+        like_count={comment.like_count}
+        dislike_count={comment.dislike_count}
+        liked={comment.liked}
+        profile_pic={comment.author.profile_pic}
+        author_id={comment.author._id}
+        username={comment.author.username}
+        onAuthFail={this.props.onAuthFail}
+        date={comment.date_formatted}
+        postNewComment={this.postNewComment.bind(this, comment.depth + 1, comment._id)}
+        _id={comment._id}
         body={comment.body}
         handleData={this.handleCommentData}
-        loadMore={children_count < comment.num_children ? this.handleLoadMore.bind(this, comment._id, children_count) : null} >
-          {children_count
-            ? this.mapComments(this.comment_tree[comment._id])
-            : null}
+        continueThread={ endOfThread && loadMore ? `/post/${this.props.postId}/${comment._id}` : null }
+        loadMore={startDepth ? () => this.props.handleLoadMore(comment._id, children_count, startDepth) : null} >
+          {children}
       </Comment>
     });
   }
@@ -77,36 +133,41 @@ class Comments extends Component {
     switch (status) {
       case 'willMount':
         if (this.commentsData[commentId]) return this.commentsData[commentId];
-        return { showTextBox: false, show: true, moreChildren: null };
+        return { showTextBox: false, show: true, newComment: '' };
 
       case 'willUnmount':
         return this.commentsData[commentId] = data;
 
       default:
-        return { showTextBox: false, show: true, moreChildren: null };
+        return { showTextBox: false, show: true, newComment: '' };
     }
   }
 
   render() {
-    let result;
-    if(this.comment_tree[this.postId]) {
-      result = this.mapComments(this.comment_tree[this.postId]);
-    }
-    return <>
-      {result}
-      {this.state.loading && <LinearProgress className={this.props.classes.loading} />}
-    </>
+    return (
+      <div className={this.props.classes.commentWrapper}>
+        {
+          this.props.rootId === this.props.postId ?
+          <StatefulCreateComment
+            handleAuthFail={this.props.token ? null : this.props.onAuthFail}
+            userPic={this.props.userPic}
+            renderSwitch={this.state.renderSwitch}
+            postNewComment={this.postNewComment.bind(this, 0, this.props.postId)} />
+          : 
+          <div className={this.props.classes.spacer}>
+            <LinkThread to={'/post/' + this.props.postId}>Go back to main thread</LinkThread>
+          </div>
+        }
+        {this.comment_tree[this.root] && this.mapComments(this.comment_tree[this.root].children)}
+
+        {this.root === this.props.postId && this.comment_tree[this.root] && this.comment_tree[this.root].children_count < this.props.post_num_children &&
+          <LinkThread onClick={() => this.props.handleLoadMore(this.root, this.comment_tree[this.root].children_count, 0)} >
+              Load More
+          </LinkThread>}
+
+      </div>
+    );
   }
 }
 
-const mapStateToProps = state => {
-  return {
-  };
-};
-
-const mapDispatchToProps = dispatch => {
-  return {
-  };
-};
-
-export default  connect( mapStateToProps, mapDispatchToProps )(withStyles(styles)(Comments));
+export default withStyles(styles)(Comments);

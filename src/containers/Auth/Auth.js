@@ -28,17 +28,20 @@ const styles = (theme) => ({
   },
   header: {
     margin: theme.spacing(2)
+  },
+  logoWrapper: {
+    height: 50,
+    filter: theme.palette.type === 'dark' ? 'invert(100%)' : ''
   }
 });
 
 class Auth extends Component {
   constructor(props){
     super(props);
-    this.state = {controls: this.initializeState()};
-    this.flashed = false;
+    this.state = {controls: this.initializeState(props.register)};
   }
 
-  initializeState() {
+  initializeState(isRegister) {
     let controls = {};
     let fields = [
       {name: 'email', label: 'E-mail', type: 'email', max: 200},
@@ -47,7 +50,7 @@ class Auth extends Component {
       {name: 'password', label: 'Password', type: 'password', max: 200},
       {name: 'confirmPassword', label: 'Confirm password', type: 'password', max: 200}
     ];
-    if(!this.props.register) fields = [fields[0], fields[3]];
+    if (!isRegister) fields = [fields[0], fields[3]];
     for (let field of fields) {
       controls[field.name] = {
         type: field.type,
@@ -61,16 +64,22 @@ class Auth extends Component {
     return controls;
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.register === this.props.register) return;
-    this.setState({controls: this.initializeState()});
-    (this.props.errors.length > 0) && this.props.clearErrors();
-    if (!this.props.register) return;
-    this.props.redirectMessage && this.props.clearRedirectMessage();
+  shouldComponentUpdate(nextProps, nextState) {
+    if (nextProps.register !== this.props.register) {
+      // when the user switches between /login and /register, it is necessary to
+      // change the input fields, clear errors and clear the redirect message, if there is one
+      this.setState({controls: this.initializeState(nextProps.register)});
+      (this.props.errors.length > 0) && this.props.clearErrors();
+      !this.props.register && this.props.redirectMessage && this.props.clearRedirectMessage();
+    }
+    // if there is a register success, redirect to /login
+    this.props.register && nextProps.redirectMessage && this.props.history.push('/login');
+    return (this.props !== nextProps || this.state !== nextState);
   }
 
   componentWillUnmount() {
-    this.props.clearErrors();
+    // clear errors, redirectMessage and redirect path
+    this.props.clearAuthHelpers();
   }
 
   inputChangedHandler = (key, event) => {
@@ -111,12 +120,12 @@ class Auth extends Component {
   
   render() {
     const classes = this.props.classes;
-    
+   
     return (
+      this.props.isAuthenticated ? <Redirect to={this.props.authRedirectPath} /> :
       <div className={classes.login} >
-        {(this.props.redirectMessage || this.props.isAuthenticated) && <Redirect to={this.props.authRedirectPath}/>}
 
-        <div style={{ height: 50 }}>
+        <div className={classes.logoWrapper}>
           <Logo />
         </div>
 
@@ -147,7 +156,7 @@ class Auth extends Component {
           variant='contained'
           fullWidth>{this.props.register ? 'Register' : 'Login'}</Button>
 
-        {!this.flashed && this.props.errors.map(err => (
+        {this.props.errors.map(err => (
           <Alert key={err.msg} className={classes.spaced} severity="error">{capitalize(err.msg)}</Alert>
         ))}
         {this.props.redirectMessage && <Alert className={classes.spaced} severity="info">{this.props.redirectMessage}</Alert>}
@@ -171,9 +180,10 @@ const mapStateToProps = state => {
 
 const mapDispatchToProps = dispatch => {
   return {
-      onAuth: ( data, isRegister ) => dispatch( actions.auth( data, isRegister ) ),
-      clearErrors: () => dispatch( { type: actionTypes.CLEAR_ERRORS } ),
-      clearRedirectMessage: () => dispatch( { type: actionTypes.CLEAR_REDIRECT_MESSAGE } )
+    onAuth: ( data, isRegister ) => dispatch( actions.auth( data, isRegister ) ),
+    clearErrors: () => dispatch( { type: actionTypes.CLEAR_ERRORS } ),
+    clearRedirectMessage: () => dispatch( { type: actionTypes.CLEAR_REDIRECT_MESSAGE } ),
+    clearAuthHelpers: () => dispatch( { type: actionTypes.CLEAR_AUTH_HELPERS } )
   };
 };
 

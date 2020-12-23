@@ -2,7 +2,7 @@ export {
   auth,
   authFail,
   logout,
-  setAuthRedirectPath,
   authCheckState,
-  updatePictures
+  updatePictures,
+  setAuthRedirectPath
 } from './auth';

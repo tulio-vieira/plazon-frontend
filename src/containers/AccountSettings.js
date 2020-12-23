@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { capitalize, fade, LinearProgress, TextField, Typography, withStyles } from '@material-ui/core';
+import { capitalize, fade, LinearProgress, TextField, Typography } from '@material-ui/core';
 import CoverPhoto from '../components/CoverPhoto';
 import WallpaperIcon from '@material-ui/icons/Wallpaper';
 import BottomOptions from '../components/BottomOptions';
@@ -9,12 +9,18 @@ import { connect } from 'react-redux';
 import * as actions from '../store/actions/index'
 import { checkValidity } from '../shared/utility';
 import Alert from '@material-ui/lab/Alert';
+import withErrorHandler from '../hoc/withErrorHandler';
 
 const styles = (theme) => ({
+  accountSettings: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: theme.spacing(3),
+    marginTop: theme.spacing(3)
+  },
   container: {
     backgroundColor: theme.palette.background.front,
     padding: theme.spacing(3),
-    borderRadius: '0 0 10px 10px',
   },
   wrapper: {
     border: '1px solid ' + theme.palette.text.secondary,
@@ -239,7 +245,7 @@ class AccountSettings extends Component {
 
     this.setState({loading: true});
     axios.post(
-      `/users/${this.props.userId}`,
+      `/users/${this.props.userId}/edit`,
       fd,
       {headers: { Authorization: `Bearer ${this.props.token}` }}
     ).then(res => {
@@ -280,7 +286,7 @@ class AccountSettings extends Component {
   render() {
     const classes = this.props.classes;
     return (
-      <>
+      <div className={classes.accountSettings}>
         <Heading variant='h5'>Edit Profile</Heading>
         <div className={classes.container}>
           <div className={classes.wrapper}>
@@ -347,7 +353,7 @@ class AccountSettings extends Component {
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 }
@@ -367,4 +373,4 @@ const mapDispatchToProps = dispatch => {
   };
 };
 
-export default connect( mapStateToProps, mapDispatchToProps )( withStyles(styles)(AccountSettings) );
+export default connect( mapStateToProps, mapDispatchToProps )( withErrorHandler(AccountSettings, styles, axios) );

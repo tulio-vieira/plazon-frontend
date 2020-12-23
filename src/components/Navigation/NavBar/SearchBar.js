@@ -1,74 +1,84 @@
-import React from 'react';
-import InputBase from '@material-ui/core/InputBase';
-import { makeStyles, darken } from '@material-ui/core/styles';
+import React, { Component } from 'react';
+import { darken, withStyles } from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
+import { withRouter } from 'react-router';
 
-const useStyles = makeStyles((theme) => {
+const styles = (theme) => {
     const fontColor = theme.palette.type === 'dark' ? 'white' : 'black';
     return {
         search: {
-            position: 'relative',
             paddingLeft: theme.spacing(1),
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
             borderRadius: 17,
             backgroundColor: theme.palette.background.front,
             '&:hover': {
                 backgroundColor: darken(theme.palette.background.front, 0.1)
             },
             marginRight: 0,
-            width: '100%',
-            [theme.breakpoints.up('sm')]: {
-                marginRight: theme.spacing(1),
-                width: 'auto',
-            },
+            maxWidth: 440
         },
         searchIcon: {
-            padding: theme.spacing(0, 1),
             color: fontColor,
+            cursor: 'pointer',
+            marginRight: theme.spacing(1),
             height: '100%',
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            pointerEvents: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
         },
-        inputRoot: {
+        input: {
+            backgroundColor: 'inherit',
+            border: 'none',
+            outline: 'none',
             color: fontColor,
-        },
-        inputInput: {
             padding: theme.spacing(1, 0, 1, 1),
-            // vertical padding + font size from searchIcon
-            paddingRight: `calc(1em + ${theme.spacing(4)}px)`,
-            transition: theme.transitions.create('width'),
             fontSize: '0.8rem',
             width: '100%',
-            [theme.breakpoints.up('sm')]: {
-                width: '12ch',
+            [theme.breakpoints.up(800)]: {
+                transition: theme.transitions.create('width'),
+                width: 164,
                 '&:focus': {
-                    width: '20ch',
-                },
-            },
-        },
+                    width: 400
+                }
+            }
+        }
     }
-});
+};
 
-export default function SearchAppBar() {
-    const classes = useStyles();
+class SearchBar extends Component {
+    state = {value: ''}
 
-    return (
-        <div className={classes.search}>
-            <InputBase
-                placeholder="Search Plazon…"
-                classes={{
-                    root: classes.inputRoot,
-                    input: classes.inputInput,
-                }}
-                inputProps={{ 'aria-label': 'search' }}
-            />
-            <div className={classes.searchIcon}>
-                <SearchIcon />
+    handleInput = (e) => {
+        this.setState({value: e.target.value});
+    }
+
+    handleKeyPress = (e) => {
+        if (e.charCode === 13) this.submitInput();
+    }
+
+    submitInput = () => {
+        if (this.state.value.length === 0) return;
+        if (this.props.location.pathname.match(/\/search\/(users|posts)/g)) {
+            this.props.history.push(this.props.location.pathname + '?search=' + this.state.value);
+        } else {
+            this.props.history.push('/search/users?search=' + this.state.value);
+        }
+    }
+    
+    render() {
+        const classes = this.props.classes;
+        return (
+            <div className={classes.search}>
+                <input
+                    placeholder="Search Plazon…"
+                    value={this.state.value}
+                    onChange={this.handleInput}
+                    onKeyPress={this.handleKeyPress}
+                    className={classes.input} />
+
+                <SearchIcon onClick={this.submitInput}  className={classes.searchIcon} />
             </div>
-        </div>
-    );
+        );
+    }
 }
+
+export default withStyles(styles)(withRouter(SearchBar))

@@ -1,7 +1,7 @@
 import React from 'react';
-import logoUrl from '../assets/images/blog.png';
+import logoUrl from '../assets/images/logo-small.png';
 
-const Logo = (props) => (
+const Logo = () => (
   <img style={{ height: '100%' }} src={logoUrl} alt='Plazon' />
 );
 

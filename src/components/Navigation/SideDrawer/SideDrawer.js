@@ -7,6 +7,9 @@ import UserInfo from './UserInfo';
 import { Link } from 'react-router-dom';
 import CoverPhoto from '../../CoverPhoto';
 import { DEFAULT_BANNER } from '../../../shared/utility';
+import Brightness4Icon from '@material-ui/icons/Brightness4';
+import { IconButton } from '@material-ui/core';
+import GitHubIcon from '@material-ui/icons/GitHub';
 
 const drawerWidth = 240;
 
@@ -17,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
     },
     drawerPaper: {
         width: drawerWidth,
-        backgroundColor: theme.palette.type === 'dark' ? theme.palette.background.front : theme.palette.primary.light
+        backgroundColor: theme.palette.background.front
     },
     drawerContainer: {
         overflow: 'auto',
@@ -41,23 +44,36 @@ const useStyles = makeStyles((theme) => ({
     },
     listItem: {
         padding: 0
-    }
+    },
+    footer: {
+        marginTop: 'auto',
+        marginLeft: theme.spacing(2),
+        marginBottom: theme.spacing(2),
+        color: theme.palette.text.secondary,
+        fontSize: '0.8rem',
+        '& a': {
+            display: 'flex',
+            alignItems: 'center',
+            color: 'inherit'
+        },
+        '& span': {
+            marginLeft: '0.1em'
+        }
+    },
 }));
 
-function SideDrawer(props) {
+function SideDrawer({ isAuthenticated, currentUser, open, onClose, switchedDarkMode }) {
     const classes = useStyles();
-    // change this
+
     let links = {
         'Feed': { to: '/feed' },
-        // for development
-        'User List': { to: '/userlist' },
-        'Some profile': { to: '/profile/5f8b589ca09ee50f3c67ce96' },
+        'Discover Users': { to: '/discover' }
     };
 
-    if (props.isAuthenticated) {
+    if (isAuthenticated) {
         links = {
             ...links,
-            'My Profile': { to: `/profile/${props.currentUser._id}` },
+            'My Profile': { to: `/profile/${currentUser._id}` },
             'Settings': { to: '/settings' },
             'Logout': { to: '/logout' }
         };
@@ -72,20 +88,20 @@ function SideDrawer(props) {
     return (
         <Drawer
             anchor='left'
-            open={props.open}
-            onClose={props.onClose}
+            open={open}
+            onClose={onClose}
             className={classes.drawer}
             classes={{
                 paper: classes.drawerPaper,
             }} >
                 
-            <CoverPhoto backgroundUrl={(props.currentUser && props.currentUser.banner_pic) || DEFAULT_BANNER} />
-            <div onClick={props.onClose} className={classes.closeIcon}>{<>&#10006;</>}</div>
-            {props.isAuthenticated && <UserInfo currentUser={props.currentUser} />}
+            <CoverPhoto backgroundUrl={(currentUser.banner_pic) || DEFAULT_BANNER} />
+            <div onClick={onClose} className={classes.closeIcon}>&#10006;</div>
+            {isAuthenticated && <UserInfo currentUser={currentUser} />}
 
             <div className={classes.drawerContainer}>
 
-                <List style={{padding: 0}} onClick={props.onClose}>
+                <List style={{padding: 0}} onClick={onClose}>
                     {Object.keys(links).map(key => (
                         <ListItem key={key} button className={classes.listItem}>
                             <Link className={classes.link} {...links[key]} >{key}</Link>
@@ -93,6 +109,15 @@ function SideDrawer(props) {
                     ))}
                 </List>
 
+            </div>
+            
+            <div className={classes.footer}>
+                <IconButton onClick={switchedDarkMode}>
+                    <Brightness4Icon />
+                </IconButton>
+                <p>2020 Plazon</p>
+                <p>Created by: <strong>Tulio Vieira</strong></p>
+                <a href="https://github.com/tulio-vieira/plazon-backend"><GitHubIcon style={{height: '0.8em'}}/><span>/tulio-vieira</span></a>
             </div>
         </Drawer>
     );

@@ -1,5 +1,4 @@
 import axios from '../../axios-instance';
-import { BASE_URL, setPic } from '../../shared/utility';
 import * as actionTypes from './actionTypes';
 
 const userFields = ['_id', 'name', 'username', 'profile_pic', 'banner_pic'];
@@ -10,24 +9,30 @@ export const authStart = () => {
     };
 };
 
-// get 
 export const authSuccess = (token, user) => {
     return {
         type: actionTypes.AUTH_SUCCESS,
         token,
         currentUser: {
             ...user,
-            profile_pic: setPic(user.profile_pic),
-            banner_pic: setPic(user.banner_pic)
+            profile_pic: user.profile_pic,
+            banner_pic: user.banner_pic
         }
+    };
+}
+;
+const registerSuccess = () => {
+    return {
+        type: actionTypes.REGISTER_SUCCESS,
+        redirectMessage: 'Account successfully registered!'
     };
 };
 
 export const updatePictures = (profile_pic, banner_pic) => {
     return {
         type: actionTypes.UPDATE_PICTURES,
-        profile_pic: profile_pic && (BASE_URL + profile_pic),
-        banner_pic: banner_pic && (BASE_URL + banner_pic)
+        profile_pic,
+        banner_pic
     };
 }
 
@@ -62,8 +67,8 @@ export const auth = (authData, isRegister) => {
         const url = '/' + (isRegister ? 'register' : 'login');
         axios.post(url, authData)
             .then(res => {
+                if (isRegister) return dispatch(registerSuccess());
                 dispatch(authSuccess(res.data.token, res.data.user));
-                if (isRegister) return dispatch(setAuthRedirectPath('/login', 'Account successfully registered!'));
                 const expirationDate = new Date(new Date().getTime() + res.data.expiresIn * 1000);
                 localStorage.setItem('expirationDate', expirationDate);
                 localStorage.setItem('token', res.data.token);
@@ -75,14 +80,6 @@ export const auth = (authData, isRegister) => {
             .catch(err => {
                 dispatch(authFail(err.response.data.errors));
             });
-    };
-};
-
-export const setAuthRedirectPath = (path, redirectMessage) => {
-    return {
-        type: actionTypes.SET_AUTH_REDIRECT_PATH,
-        path,
-        redirectMessage
     };
 };
 
@@ -105,3 +102,9 @@ export const authCheckState = () => {
     };
 };
 
+export const setAuthRedirectPath = (path) => {
+    return {
+        type: actionTypes.SET_AUTH_REDIRECT_PATH,
+        path
+    };
+};

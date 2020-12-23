@@ -9,12 +9,15 @@ const styles = (theme) => ({
         color: theme.palette.type === 'dark' ? 'white' : 'black',
         margin: '0 20%',
         paddingTop: 60,
-        [`${theme.breakpoints.down('md')} and (orientation: landscape)`]: {
+        [theme.breakpoints.down(960)]: {
             margin: '0 10%',
         },
-        [theme.breakpoints.down('sm')]: {
+        [theme.breakpoints.down(600)]: {
             margin: '0 5%',
             paddingTop: 56
+        },
+        [theme.breakpoints.down(350)]: {
+            margin: 0,
         },
     }
 });
@@ -37,8 +40,11 @@ class Layout extends Component {
             <Fragment>
                 <NavBar
                     switchedDarkMode={this.props.switchedDarkMode}
-                    menuClicked={this.sideDrawerToggleHandler} />
+                    menuClicked={this.sideDrawerToggleHandler}
+                    isAuthenticated={this.props.isAuthenticated}
+                    currentUser={this.props.currentUser} />
                 <SideDrawer
+                    switchedDarkMode={this.props.switchedDarkMode}
                     isAuthenticated={this.props.isAuthenticated}
                     currentUser={this.props.currentUser}
                     open={this.state.showSideDrawer}
@@ -54,7 +60,7 @@ class Layout extends Component {
 const mapStateToProps = state => {
     return {
         isAuthenticated: state.auth.token !== null,
-        currentUser: state.auth.currentUser
+        currentUser: state.auth.currentUser,
     };
 };
 

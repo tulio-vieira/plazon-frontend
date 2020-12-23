@@ -40,24 +40,17 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-export default function ProfileTabs() {
+export default function ProfileTabs({ navLinks }) {
   const classes = useStyles();
-  const navlinks = [
-    { title: 'Posts', link: 'posts' },
-    { title: 'Comments', link: 'comments' },
-    { title: '10 Followers', link: 'followers' },
-    { title: '8 Following', link: 'following' },
-  ];
-
   return (
     <div className={classes.profileTabs}>
-      {navlinks.map(navlink => (
+      {navLinks.map(navLink =>
         <NavLink
-          key={navlink.title}
+          key={navLink.title}
           activeClassName={classes.active}
-          to={navlink.link}
-          exact><Button>{navlink.title}</Button><div className={classes.underline} /></NavLink>
-      ))}
+          to={navLink.to}
+          exact><Button>{navLink.title}</Button><div className={classes.underline} /></NavLink>
+      )}
     </div>
   );
 }

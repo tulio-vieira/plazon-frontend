@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import Modal from '@material-ui/core/Modal';
 import { withStyles } from '@material-ui/core/styles';
+import { Dialog, DialogContent, DialogContentText } from '@material-ui/core';
+import ErrorPage from '../components/ErrorPage';
 
 const withErrorHandler = (WrappedComponent, compStyles, axios) => {
 
   const styles = (theme) => {
-    let styles = compStyles(theme);
+    let styles = compStyles ? compStyles(theme) : {};
     return {
       paper: {
         position: 'absolute',
@@ -24,13 +25,17 @@ const withErrorHandler = (WrappedComponent, compStyles, axios) => {
   class WithError extends Component {
     constructor(props) {
       super(props);
-      this.state = { error: null };
+      this.state = { errMsg: null };
       this.reqInterceptor = axios.interceptors.request.use(req => {
-        this.setState({ error: null });
+        this.setState({ errMsg: null });
         return req;
       });
       this.resInterceptor = axios.interceptors.response.use(res => res, error => {
-        this.setState({ error });
+        try {
+          this.setState({ errMsg: error.response.data.errors[0].msg });
+        } catch {
+          this.setState({ errMsg: error.message });
+        }
         return Promise.reject(error);
       });
     }
@@ -41,19 +46,24 @@ const withErrorHandler = (WrappedComponent, compStyles, axios) => {
     }
 
     errorConfirmedHandler = () => {
-      this.setState({ error: null });
+      this.setState({ errMsg: null });
     }
 
     render() {
+
       return (
+        this.state.errMsg === 'DOCUMENT_NOT_FOUND' ?
+        <ErrorPage /> :
         <>
-          <Modal
-            open={this.state.error ? true : false}
+          <Dialog
+            open={this.state.errMsg ? true : false}
             onClose={this.errorConfirmedHandler}>
-            <div className={this.props.classes.paper}>
-              {this.state.error ? this.state.error.message : null}
-            </div>
-          </Modal>
+            <DialogContent>
+              <DialogContentText>
+                {this.state.errMsg}
+              </DialogContentText>
+            </DialogContent>
+          </Dialog>
           <WrappedComponent {...this.props} />
         </>
       );

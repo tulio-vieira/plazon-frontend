@@ -1,16 +1,20 @@
 import React, { Component } from 'react';
-import { Redirect } from 'react-router-dom';
 import { connect } from 'react-redux';
 
 import * as actions from '../../store/actions/index';
+import { LinearProgress } from '@material-ui/core';
 
 class Logout extends Component {
     componentDidMount () {
         this.props.logout();
     }
 
+    componentDidUpdate() {
+        this.props.history.goBack();
+    }
+
     render () {
-        return <Redirect to="/feed"/>;
+        return <LinearProgress style={{marginTop: 24}}/>;
     }
 }
 

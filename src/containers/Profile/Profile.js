@@ -1,75 +1,30 @@
 import React, { Component } from 'react';
 import ProfileTabs from './ProfileTabs';
-import { IconButton, LinearProgress } from '@material-ui/core';
-import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
-import CoverPhoto from '../../components/CoverPhoto';
+import { capitalize, LinearProgress } from '@material-ui/core';
 import withErrorHandler from '../../hoc/withErrorHandler';
 import axios from '../../axios-instance';
-import { connect } from 'react-redux';
-import { convertDate, setPic } from '../../shared/utility';
 import { Redirect, Route, Switch } from 'react-router';
-import { Link } from 'react-router-dom';
-
-const styles = (theme) => ({
-  wrapper: {
-    backgroundColor: theme.palette.background.mid,
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    marginLeft: theme.spacing(3),
-    marginRight: theme.spacing(3),
-  },
-  image: {
-    position: 'relative',
-    top: -20,
-    height: 105,
-    width: 105,
-    borderRadius: '50%',
-    marginRight: theme.spacing(1.5),
-  },
-  data: {
-    '& p': {
-      margin: '0.3em',
-      color: theme.palette.text.secondary
-    }
-  },
-  settings: {
-    alignSelf: 'center',
-    marginLeft: 'auto'
-  },
-
-  [theme.breakpoints.down('xs')]: {
-    userInfo: {
-      flexDirection: 'column',
-      alignItems: 'center'
-    },
-    settings: {
-      margin: 'auto'
-    },
-    data: {
-      textAlign: 'center'
-    },
-    image: {
-      margin: 0,
-      marginBottom: theme.spacing(1)
-    }
-  },
-});
+import ProfileDashboard from './ProfileDashboard';
+import UserList from '../UserList/UserList';
+import PostList from '../PostList/PostList';
+import { connect } from 'react-redux';
+import CommentList from '../CommentList/CommentList';
+import DashBoardWrapper from '../../components/UI/DashBoardWrapper';
+import List from '../../components/UI/List';
 
 class Profile extends Component {
   state = {
     loading: true,
+    _id: null,
     name: null,
     username: null,
     description: null,
     profile_pic: null,
     banner_pic: null,
-    date_created: null
+    date_created: null,
+    followed: null,
+    follower_count: 0,
+    following_count: 0
   };
 
   componentDidMount() {
@@ -83,67 +38,74 @@ class Profile extends Component {
   }
 
   makeRequest = () => {
-    const { id } = this.props.match.params;
-    axios.get('/users/' + id)
+    axios({
+      method: 'GET',
+      url: '/users/' + this.props.match.params.id,
+      headers: { 'Authorization': 'Bearer ' + this.props.token },
+    })
     .then(res => {
       if (!res) return;
       this.setState({
         ...res.data.user,
-        profile_pic: setPic(res.data.user.profile_pic),
-        banner_pic: setPic(res.data.user.banner_pic),
-        date_created: convertDate(res.data.user.date_created),
         loading: false
       });
     })
   }
 
   render() {
-    const classes = this.props.classes;
+    const { location } = this.props;
     const url = this.props.match.url;
-    const { id } = this.props.match.params;
+
+    const routes = this.props.location.pathname.split('/');
+    const title = capitalize(routes[routes.length - 1]);
 
     return (
       this.state.loading ? 
       <LinearProgress style={{marginTop: 24}}/>
       :
-      <div className={classes.wrapper}>
+      <>
+        <DashBoardWrapper>
+          <ProfileDashboard
+            userId={this.state._id}
+            followed={this.state.followed}
+            name={this.state.name}
+            username={this.state.username}
+            profile_pic={this.state.profile_pic}
+            banner_pic={this.state.banner_pic}
+            date_created={this.state.date_created}
+            description={this.state.description} />
 
-        <CoverPhoto backgroundUrl={this.state.banner_pic } />
+          <ProfileTabs navLinks={[
+              { title: 'Posts', to: 'posts' },
+              { title: 'Comments', to: 'comments' },
+              { title: this.state.follower_count + ' Followers', to: 'followers' },
+              { title: this.state.following_count + ' Following', to: 'following' }
+            ]} />
+        </DashBoardWrapper>
 
-        {!this.state.loading && <div className={classes.userInfo}>
-          <img className={classes.image} src={this.state.profile_pic} alt='' />
-          <div className={classes.data}>
-            <p style={{ fontSize: '1.4em' }}>{this.state.name}</p>
-            <p>{'@' + this.state.username}</p>
-            <p style={{ marginBottom: '0.6em' }}>{'Joined ' + this.state.date_created}</p>
-            <p style={{ marginBottom: '1em' }}>{this.state.description}</p>
-          </div>
-          {this.props.isAuthenticated && (this.props.currentUserId === id) &&
-            <Link className={classes.settings} to='/settings'>
-              <IconButton  aria-label="delete">
-                  <SettingsOutlinedIcon />
-              </IconButton>
-            </Link>
-          }
-        </div>}
-        <ProfileTabs />
-        <Switch>
-          <Route path={`${url}/posts`} render={() => <p>posts</p>}/>
-          <Route path={`${url}/comments`} render={() => <p>Comments</p>}/>
-          <Route path={`${url}/following`} render={() => <p>following</p>}/>
-          <Route path={`${url}/followers`} render={() => <p>followers</p>}/>
-          <Redirect to={`${url}/posts`} />
-        </Switch>
-      </div >
+        <List title={title} out={this.props.location.pathname.includes('posts')}>
+          <Switch>
+            <Route path={`${url}/posts`}
+              render={() => <PostList url={location.pathname.replace('profile', 'users')} detail={true} />}/>
+            <Route path={`${url}/comments`} 
+              render={() => <CommentList username={this.state.username} userId={this.state._id} profile_pic={this.state.profile_pic} />} />
+            <Route path={`${url}/following`}
+              render={() => <UserList url={location.pathname.replace('profile', 'users')} /> }/>
+            <Route path={`${url}/followers`}
+              render={() => <UserList url={location.pathname.replace('profile', 'users')} /> }/>
+            <Redirect to={`${url}/posts`} />
+          </Switch>
+        </List>
+        
+      </>
     );
   }
 }
 
 const mapStateToProps = state => {
   return {
-      isAuthenticated: state.auth.token !== null,
-      currentUserId: state.auth.currentUser && state.auth.currentUser._id
+    token: state.auth.token
   };
 };
 
-export default connect(mapStateToProps)( withErrorHandler(Profile, styles, axios) );
+export default withErrorHandler( connect( mapStateToProps )( Profile ), null, axios);
